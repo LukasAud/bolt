@@ -26,9 +26,7 @@ jobs:
 
     - name: Download PR patch
       run: |
-        curl -L \
-          -H "Authorization: token ${{ secrets.PRIVATE_REPO_PAT }}" \
-          -o pr.patch \
+        curl -sSL -o pr.patch \
           "https://github.com/${{ github.repository }}/pull/${{ steps.vars.outputs.pr_number }}.patch"
 
     - name: Show patch summary
