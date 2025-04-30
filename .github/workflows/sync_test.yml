@@ -1,0 +1,56 @@
+name: Forward PR to bolt-private
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  forward:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout bolt
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Set up variables
+      id: vars
+      run: |
+        echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+        echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
+        echo "pr_branch=forward-pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+
+    - name: Download PR patch
+      run: |
+        curl -L \
+          -H "Authorization: token ${{ secrets.PRIVATE_REPO_PAT }}" \
+          -o pr.patch \
+          "https://github.com/${{ github.repository }}/pull/${{ steps.vars.outputs.pr_number }}.patch"
+
+    - name: Clone bolt-private
+      run: |
+        git clone https://x-access-token:${{ secrets.PRIVATE_REPO_PAT }}@github.com/LukasAud/bolt-private.git ../bolt-private
+
+    - name: Apply patch to private repo
+      run: |
+        cd ../bolt-private
+        git checkout -b ${{ steps.vars.outputs.pr_branch }}
+        git apply ../bolt/pr.patch || echo "Patch did not apply cleanly"
+        git add .
+        git commit -m "Forwarded: ${{ steps.vars.outputs.pr_title }}" || echo "No changes to commit"
+
+    - name: Push and create PR
+      run: |
+        cd ../bolt-private
+        git push origin ${{ steps.vars.outputs.pr_branch }}
+        gh pr create \
+          --title "[Forwarded] ${{ steps.vars.outputs.pr_title }}" \
+          --body "Automated forward of https://github.com/${{ github.repository }}/pull/${{ steps.vars.outputs.pr_number }}" \
+          --head ${{ steps.vars.outputs.pr_branch }} \
+          --base main
+      env:
+        GH_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
