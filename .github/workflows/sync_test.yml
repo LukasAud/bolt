@@ -31,6 +31,13 @@ jobs:
           -o pr.patch \
           "https://github.com/${{ github.repository }}/pull/${{ steps.vars.outputs.pr_number }}.patch"
 
+    - name: Show patch summary
+      run: |
+        echo "---- PATCH START ----"
+        head -n 40 pr.patch
+        echo "---- PATCH END ----"
+        
+
     - name: Clone bolt-private
       run: |
         git clone https://x-access-token:${{ secrets.PRIVATE_REPO_PAT }}@github.com/LukasAud/bolt-private.git ../bolt-private
