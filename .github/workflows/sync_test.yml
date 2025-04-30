@@ -35,6 +35,11 @@ jobs:
       run: |
         git clone https://x-access-token:${{ secrets.PRIVATE_REPO_PAT }}@github.com/LukasAud/bolt-private.git ../bolt-private
 
+    - name: Configure Git identity
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+      
     - name: Apply patch to private repo
       run: |
         cd ../bolt-private
