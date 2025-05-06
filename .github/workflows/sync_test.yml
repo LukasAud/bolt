@@ -45,13 +45,16 @@ jobs:
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
       
-    - name: Apply patch to private repo
+    - name: Apply patch to private repo (allow conflicts)
       run: |
         cd ../bolt-private
         git checkout -b ${{ steps.vars.outputs.pr_branch }}
-        git apply ../bolt/pr.patch || echo "Patch did not apply cleanly"
-        git add .
-        git commit -m "Forwarded: ${{ steps.vars.outputs.pr_title }}" || echo "No changes to commit"
+
+        # Try to apply patch with conflict markers
+        patch -p1 < ../bolt/pr.patch || echo "⚠️ Patch had conflicts; manual resolution may be required"
+
+        git add -A
+        git commit -m "Forwarded (with potential conflicts): ${{ steps.vars.outputs.pr_title }}" || echo "No changes to commit"
 
     - name: Push and create PR
       run: |
