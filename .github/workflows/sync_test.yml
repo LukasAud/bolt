@@ -26,14 +26,21 @@ jobs:
 
     - name: Download PR patch
       run: |
-        curl -sSL -o pr.patch \
-          "https://github.com/${{ github.repository }}/pull/${{ steps.vars.outputs.pr_number }}.patch"
+        PATCH_URL="https://github.com/${{ github.repository }}/pull/${{ steps.vars.outputs.pr_number }}.patch"
+        echo "Downloading patch from $PATCH_URL"
+        curl -sSL -w "%{http_code}" -o pr.patch "$PATCH_URL" > status.txt
+        status=$(cat status.txt)
+        if [ "$status" -ne 200 ]; then
+          echo "❌ Failed to download patch. HTTP status code: $status"
+          cat pr.patch || true
+          exit 1
+        fi
 
     - name: Show patch summary
       run: |
         echo "---- PATCH START ----"
         head -n 40 pr.patch
-        echo "---- PATCH END ----"
+        echo "\n---- PATCH END ----"
         
 
     - name: Clone bolt-private
