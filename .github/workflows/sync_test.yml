@@ -50,29 +50,28 @@ jobs:
         cd ../bolt-private
         git checkout -b ${{ steps.vars.outputs.pr_branch }}
     
-        # Try to apply using git am (for .patch format from GitHub)
-        if ! git am ../bolt/pr.patch; then
-          echo "⚠️ git am failed — falling back to manual apply"
-          git am --abort
+        echo "🔁 Trying to apply patch using git am..."
+        git am ../bolt/pr.patch && exit 0
     
-          # Extract patch file list (paths being changed)
-          patch_files=$(grep '^diff --git' ../bolt/pr.patch | awk '{print $3}' | cut -c3-)
+        echo "⚠️ git am failed — falling back to manual apply"
     
-          # Create any missing files as empty placeholders
-          for file in $patch_files; do
-            if [ ! -f "$file" ]; then
-              echo "📄 Creating placeholder for missing file: $file"
-              mkdir -p "$(dirname "$file")"
-              touch "$file"
-            fi
-          done
+        # Create any missing target files in the patch
+        echo "🔍 Detecting missing files..."
+        patch_files=$(grep '^diff --git' ../bolt/pr.patch | awk '{print $3}' | cut -c3-)
+        for file in $patch_files; do
+          if [ ! -f "$file" ]; then
+            echo "📄 Creating placeholder for missing file: $file"
+            mkdir -p "$(dirname "$file")"
+            touch "$file"
+          fi
+        done
     
-          # Apply patch with rejects allowed (conflict markers will be added)
-          git apply --reject --whitespace=fix ../bolt/pr.patch || echo "⚠️ Patch had partial conflicts"
+        # Force apply patch with conflict markers (.rej if needed)
+        echo "📌 Applying patch with git apply --reject..."
+        git apply --reject --whitespace=fix ../bolt/pr.patch || echo "⚠️ Patch had partial conflicts"
     
-          git add -A
-          git commit -m "Forwarded (with potential conflicts): ${{ steps.vars.outputs.pr_title }}" || echo "⚠️ Nothing to commit"
-        fi
+        git add -A
+        git commit -m "Forwarded (with potential conflicts): ${{ steps.vars.outputs.pr_title }}" || echo "⚠️ Nothing to commit"
 
     - name: Push and create PR
       run: |
