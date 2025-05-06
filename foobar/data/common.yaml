@@ -1,3 +1,4 @@
 --- {}
 some_key: some_other_value
 new_value_below_a_value_that_does_not_exist_in_private_repo: some_value
+another_new_value_below_a_value_that_does_not_exist_in_private_repo: some_value
