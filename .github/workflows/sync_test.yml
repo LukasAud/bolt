@@ -45,16 +45,34 @@ jobs:
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
       
-    - name: Apply patch to private repo (allow conflicts)
+    - name: Apply patch to private repo (force even with conflicts)
       run: |
         cd ../bolt-private
         git checkout -b ${{ steps.vars.outputs.pr_branch }}
-
-        # Try to apply patch with conflict markers
-        patch -p1 < ../bolt/pr.patch || echo "⚠️ Patch had conflicts; manual resolution may be required"
-
-        git add -A
-        git commit -m "Forwarded (with potential conflicts): ${{ steps.vars.outputs.pr_title }}" || echo "No changes to commit"
+    
+        # Try to apply using git am (for .patch format from GitHub)
+        if ! git am ../bolt/pr.patch; then
+          echo "⚠️ git am failed — falling back to manual apply"
+          git am --abort
+    
+          # Extract patch file list (paths being changed)
+          patch_files=$(grep '^diff --git' ../bolt/pr.patch | awk '{print $3}' | cut -c3-)
+    
+          # Create any missing files as empty placeholders
+          for file in $patch_files; do
+            if [ ! -f "$file" ]; then
+              echo "📄 Creating placeholder for missing file: $file"
+              mkdir -p "$(dirname "$file")"
+              touch "$file"
+            fi
+          done
+    
+          # Apply patch with rejects allowed (conflict markers will be added)
+          git apply --reject --whitespace=fix ../bolt/pr.patch || echo "⚠️ Patch had partial conflicts"
+    
+          git add -A
+          git commit -m "Forwarded (with potential conflicts): ${{ steps.vars.outputs.pr_title }}" || echo "⚠️ Nothing to commit"
+        fi
 
     - name: Push and create PR
       run: |
