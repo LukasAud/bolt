@@ -39,7 +39,7 @@ jobs:
     - name: Show patch summary
       run: |
         echo "---- PATCH START ----"
-        cat 40 pr.patch
+        cat pr.patch
         echo "\n---- PATCH END ----"
         
 
