@@ -36,7 +36,7 @@ jobs:
           exit 1
         fi
 
-        # making a change on a file that does not exist in the private repo
+        # making a change on a file that does not exist in the private repo, repeated
 
     - name: Show patch summary
       run: |
