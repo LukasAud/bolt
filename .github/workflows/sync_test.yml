@@ -85,7 +85,7 @@ jobs:
             Please manually review and implement the changes described in the patch file.
 
             ⚠️ **Do NOT merge this PR as-is.** Once the patch is implemented manually, you may remove this notice.
-            EOF
+          EOF
 
           git add -A
 
