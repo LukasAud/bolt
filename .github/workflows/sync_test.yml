@@ -36,12 +36,10 @@ jobs:
           exit 1
         fi
 
-        # making a change on a file that does not exist in the private repo, repeated
-
     - name: Show patch summary
       run: |
         echo "---- PATCH START ----"
-        head -n 40 pr.patch
+        cat 40 pr.patch
         echo "\n---- PATCH END ----"
         
 
@@ -53,36 +51,52 @@ jobs:
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
+        
     - name: Apply patch to private repo (force even with conflicts)
       run: |
         cd ../bolt-private
         git checkout -b ${{ steps.vars.outputs.pr_branch }}
-    
+
         echo "🔁 Trying to apply patch using git am..."
-        git am ../bolt/pr.patch && exit 0
-    
-        echo "⚠️ git am failed — falling back to manual apply"
-    
-        # Detect files in patch
-        patch_files=$(grep '^diff --git' ../bolt/pr.patch | awk '{print $3}' | cut -c3-)
-        for file in $patch_files; do
-          if [ ! -f "$file" ]; then
-            echo "📄 Creating placeholder for missing file: $file"
-            mkdir -p "$(dirname "$file")"
-            touch "$file"
-          fi
-        done
-    
-        echo "📌 Applying patch with git apply --reject..."
-        git apply --reject --whitespace=fix ../bolt/pr.patch || echo "⚠️ Patch had partial conflicts"
-    
-        git add -A
-        if git diff --cached --quiet; then
-          echo "⚠️ Patch applied nothing — creating dummy commit to allow PR"
-          git commit --allow-empty -m "Forwarded (empty patch or conflicts): ${{ steps.vars.outputs.pr_title }}"
+        if git am ../bolt/pr.patch; then
+          echo "✅ Patch applied cleanly using git am"
         else
-          git commit -m "Forwarded (with potential conflicts): ${{ steps.vars.outputs.pr_title }}"
+          echo "⚠️ git am failed — falling back to manual apply"
+
+          # Detect files in patch
+          patch_files=$(grep '^diff --git' ../bolt/pr.patch | awk '{print $3}' | cut -c3-)
+          for file in $patch_files; do
+            if [ ! -f "$file" ]; then
+              echo "📄 Creating placeholder for missing file: $file"
+              mkdir -p "$(dirname "$file")"
+              touch "$file"
+            fi
+          done
+
+          echo "📌 Applying patch with git apply --reject..."
+          git apply --reject --whitespace=fix ../bolt/pr.patch || echo "⚠️ Patch had partial conflicts"
+
+          echo "📝 Creating conflict note"
+          cat <<EOF > CONFLICT_NOTE.md
+            ⚠️ This PR was generated automatically by forwarding PR #${{ steps.vars.outputs.pr_number }} from the public repository.
+
+            One or more conflicts occurred when applying the patch. The full patch has been added, but could not be cleanly applied.
+
+            Please manually review and implement the changes described in the patch file.
+
+            ⚠️ **Do NOT merge this PR as-is.** Once the patch is implemented manually, you may remove this notice.
+            EOF
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "⚠️ Patch applied nothing — creating dummy commit to allow PR"
+            git commit --allow-empty -m "Forwarded PR #${{ steps.vars.outputs.pr_number }} (empty or conflict)"
+          else
+            git commit -m "Forwarded PR #${{ steps.vars.outputs.pr_number }} with manual conflict resolution required"
+          fi
         fi
+
 
     - name: Push and create PR
       run: |
@@ -90,7 +104,11 @@ jobs:
         git push origin ${{ steps.vars.outputs.pr_branch }}
         gh pr create \
           --title "[Forwarded] ${{ steps.vars.outputs.pr_title }}" \
-          --body "Automated forward of https://github.com/${{ github.repository }}/pull/${{ steps.vars.outputs.pr_number }}" \
+          --body "This PR is an automated forward of https://github.com/${{ github.repository }}/pull/${{ steps.vars.outputs.pr_number }}.
+    
+            If there were conflicts applying the patch, it has been saved in the working directory as a rejected diff. **Do not merge this PR** if it contains unresolved conflicts — instead, manually apply the patch by reviewing the `.rej` or `.patch` file and implementing the necessary changes in your local environment.
+            
+            Please reach out to the original author if needed." \
           --head ${{ steps.vars.outputs.pr_branch }} \
           --base main
       env:
