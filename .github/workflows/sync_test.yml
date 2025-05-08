@@ -36,6 +36,8 @@ jobs:
           exit 1
         fi
 
+        # making a change on a file that does not exist in the private repo
+
     - name: Show patch summary
       run: |
         echo "---- PATCH START ----"
