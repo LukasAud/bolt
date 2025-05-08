@@ -72,16 +72,13 @@ jobs:
           echo "📌 Applying patch with git apply --reject..."
           git apply --reject --whitespace=fix ../bolt/pr.patch || echo "⚠️ Patch had partial conflicts"
 
-          echo "📝 Creating conflict note"
-          cat <<'EOF' > CONFLICT_NOTE.md
-⚠️ This PR was generated automatically by forwarding a PR from the public repository.
-
-One or more conflicts occurred when applying the patch. The patch has been added, but could not be cleanly applied.
-
-Please manually review and implement the changes described in the patch.
-
-⚠️ **Do NOT merge this PR as-is.** Once the patch is implemented manually, you may remove this notice.
-EOF
+          echo "⚠️ This PR was generated automatically by forwarding PR #${{ steps.vars.outputs.pr_number }} from the public repository." > CONFLICT_NOTE.md
+          echo "" >> CONFLICT_NOTE.md
+          echo "One or more conflicts occurred when applying the patch. The patch has been added, but could not be cleanly applied." >> CONFLICT_NOTE.md
+          echo "" >> CONFLICT_NOTE.md
+          echo "Please manually review and implement the changes described in the patch." >> CONFLICT_NOTE.md
+          echo "" >> CONFLICT_NOTE.md
+          echo "⚠️ **Do NOT merge this PR as-is.** Once the patch is implemented manually, you may remove this notice." >> CONFLICT_NOTE.md
 
           git add -A
 
@@ -101,9 +98,9 @@ EOF
           --title "[Forwarded] ${{ steps.vars.outputs.pr_title }}" \
           --body "This PR is an automated forward of https://github.com/${{ github.repository }}/pull/${{ steps.vars.outputs.pr_number }}.
 
-If there were conflicts applying the patch, the patch has been partially or entirely rejected. A file named \`CONFLICT_NOTE.md\` has been added to this PR to guide you on resolving the issues.
+          If there were conflicts applying the patch, the patch has been partially or entirely rejected. A file named \`CONFLICT_NOTE.md\` has been added to this PR to guide you on resolving the issues.
 
-⚠️ **Do NOT merge this PR as-is if there are conflicts**. Instead, review and manually implement the patch changes, then remove the note when done." \
+          ⚠️ **Do NOT merge this PR as-is if there are conflicts**. Instead, review and manually implement the patch changes, then remove the note when done." \
           --head ${{ steps.vars.outputs.pr_branch }} \
           --base main
       env:
