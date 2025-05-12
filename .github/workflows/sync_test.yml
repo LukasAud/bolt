@@ -44,7 +44,7 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
       run: |
-        echo "$GH_TOKEN" | gh auth login --with-token
+        gh auth login --with-token <<< "$GH_TOKEN"
         gh repo clone LukasAud/bolt-private ../bolt-private
 
     - name: Configure Git identity
