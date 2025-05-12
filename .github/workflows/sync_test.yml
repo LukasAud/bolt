@@ -41,8 +41,11 @@ jobs:
         echo "\n---- PATCH END ----"
 
     - name: Clone bolt-private
+      env:
+        GH_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
       run: |
-        git clone https://x-access-token:${{ secrets.PRIVATE_REPO_PAT }}@github.com/LukasAud/bolt-private.git ../bolt-private
+        echo "$GH_TOKEN" | gh auth login --with-token
+        gh repo clone LukasAud/bolt-private ../bolt-private
 
     - name: Configure Git identity
       run: |
