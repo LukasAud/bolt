@@ -1,3 +1,4 @@
 --- {}
 some_key: some_other_value
-some_other_key: some_other_value
+some_other_key: some_changed_value
+some_newish_key: some_newish_other_value
