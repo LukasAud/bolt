@@ -4,3 +4,4 @@ some_other_key: some_changed_value
 some_newish_key: some_newish_other_value
 a_chained_key: a_chained_value
 a_second_chained_key: a_second_chained_value
+first_commit_of_a_new_pr: first_commit_of_a_new_pr_value
